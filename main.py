@@ -1,6 +1,9 @@
 from random import randint
 from time import sleep
 
+DICES_VISUAL_LIST = [["","","","","",""],
+                     ["","","","","",""],
+                     ["","","","","",""]]
 
 class Player():
     def __init__(self, id, name : str) -> None:
@@ -14,19 +17,17 @@ class Player():
         print(f"Musí přehodit {minimal}\n")
         roundEnd = False
         self.scoreNow = 0
+        freeDices = 6
 
         while not roundEnd:
             input("Hod")
 
             dices = []
-            validMovesIndex = 0
-            validMoves = {}
-            freeDices = 6
 
-            debugDices = [1,2,3,4,5,5]
+            #debugDices = [1,2,3,4,5,5]
             for i in range(freeDices):
-                #d = rollDice()
-                d = debugDices[i]
+                d = rollDice()
+                #d = debugDices[i]
                 #sleep(randint(80, 100) / 100)
                 print(d)
                 dices.append(d)
@@ -41,18 +42,23 @@ class Player():
             # dohodit postupku
             frequencyList = []
             for i in range (1,7):
-                f = dices.count(i)
-                frequencyList.append(f)
+                currentNumberCount = dices.count(i)
+                frequencyList.append(currentNumberCount)
                 
-                if f >= 3:
+                if currentNumberCount >= 3:
                     if i == 1: big = 1000
                     else: big = 100
 
-                    increment = f-3
+                    increment = currentNumberCount-3
 
                     calculatedScore = i * big * (2 ** increment)
-                    print(f"Tykráso, {f} krát {i}? No to snad neni možný. +{calculatedScore}")
-                    
+                    print(f"Tykráso, {currentNumberCount} krát {i}? No to snad neni možný. +{calculatedScore}")
+
+                    keepChoice = input("Chceš si to nechat? (A/N) > ")
+                    if keepChoice.lower() == "a":
+                        self.scoreNow += calculatedScore
+                        freeDices -= currentNumberCount
+                        frequencyList[i-1] = 0
 
 
             print(f"debug: četnosti : {frequencyList}")
@@ -74,16 +80,36 @@ class Player():
                     if d == missingNumber:
                         print("Hurá, postupka je v kapse. +2000")
                         self.scoreNow += 2000
+                        freeDices = 0
                     else:
                         print("Někdy příště :)")
                         self.scoreNow = 0
                         roundEnd = True
 
+            if freeDices == 0:
+                print("Jde se do plných, všechny kostky byly vrženy")
+                freeDices = 6
+                continue
 
-            choice = input("něco")
+            if frequencyList[0] > 0 or frequencyList[4] > 0:
+                oneChoice = int(input(f"Chceš si nechat nějakou jedničku? Zadej číslo 0 - {frequencyList[0]} > "))
+
+                if oneChoice > 0:
+                    self.scoreNow += oneChoice * 100
+                    freeDices -= oneChoice
+
+                fiveChoice = int(input(f"Chceš si nechat nějakou pětku? Zadej číslo 0 - {frequencyList[4]} > "))
+
+                if fiveChoice > 0:
+                    self.scoreNow += fiveChoice * 50
+                    freeDices -= fiveChoice
+
+            continueChoice = input("Chceš pokračovat? (A/N) > ")
+            if continueChoice.lower() == "n":
+                roundEnd = True
         
         self.score += self.scoreNow
-        print(f"{'Konec kola, získali jste':<30} {self.scoreNow}")
+        print(f"\n{'Konec kola, získali jste':<30} {self.scoreNow}")
         print(f"{'celkové skóre činí':<30} {self.score}")
         print(f"{'počet čárek':<30} {self.lines}")
 
