@@ -74,7 +74,7 @@ class Player():
             print()
             print(*dices)
 
-            print("____________________________________\n")
+            print("___________________________________________________\n")
 
             # nechat jakoukoliv kombinaci jedniček nebo pětek (100, 50)
             # trojičky atd (tři 4 = 400, čtyři je 400*2) X
@@ -104,9 +104,10 @@ class Player():
             #print(f"debug: četnosti : {frequencyList}")
 
             if frequencyList == [1, 1, 1, 1, 1, 1]: # Postupka
-                print("Postupka! +2000")
+                print("Postupka! +2000\n")
                 self.scoreNow += 2000
                 freeDices = 0
+                frequencyList = [0, 0, 0, 0, 0, 0]
             
             elif frequencyList.count(1) == 4 and freeDices == 6 : # Dohodit postupku
                 missingNumber = frequencyList.index(0)+1
@@ -119,19 +120,16 @@ class Player():
                     d = rollDice()
                     print(DICES_VISUAL_LIST[d-1],"\n")
                     if d == missingNumber:
-                        print("Hurá, postupka je v kapse. +2000")
+                        print("Hurá, postupka je v kapse. +2000\n")
                         self.scoreNow += 2000
                         freeDices = 0
+                        frequencyList = [0, 0, 0, 0, 0, 0]
                     else:
                         print("Někdy příště :)")
                         self.scoreNow = 0
                         roundEnd = True
+                        self.lines += 1
                         continue
-
-            if freeDices == 0:
-                print("Jde se do plných, všechny kostky byly vrženy")
-                freeDices = 6
-                continue
 
             if frequencyList[0] > 0: # Jedničky
                 oneChoice = getKeepChoice("jedničku", frequencyList[0])
@@ -147,7 +145,53 @@ class Player():
                     self.scoreNow += fiveChoice * 50
                     freeDices -= fiveChoice
 
-            if self.scoreNow == lastScore:
+            if freeDices == 0:
+                print("Jde se do plných, všechny kostky byly vrženy")
+                freeDices = 6
+                continue
+
+            if self.scoreNow == lastScore and freeDices == 6: # Poslední šance dohodit postupku
+                print("\nNehodil jsi nic, ale můžeš zkusit dohodit postupku")
+                missingNumbers = []
+
+                for i in range(0,6):
+                    currentFrequency = frequencyList[i]
+                    if currentFrequency == 0:
+                        missingNumbers.append(i+1)
+                
+                missingNumbers.sort()
+                print(f"Chybí ti tyto čísla > {missingNumbers}\n")
+
+                rolledNumbers = []
+                input("\tHod")
+                for i in range(len(missingNumbers)):
+                
+                    d = rollDice()
+                    rolledNumbers.append(d)
+
+                dice_images = [DICES_VISUAL_LIST[d-1] for d in rolledNumbers]
+                split_dice = [img.splitlines() for img in dice_images]
+
+                for row_parts in zip(*split_dice):
+                    print("  ".join(row_parts))
+
+                rolledNumbers.sort()
+
+                if missingNumbers == rolledNumbers:
+                    print("\nLets go vyšlo to, máš postupku +2000\n")
+                    self.scoreNow += 2000
+                    freeDices = 0
+                    frequencyList = [0, 0, 0, 0, 0, 0]
+
+                else:
+                    print("\nNevyšlo to, někdy příště")
+                    self.lines += 1
+                    self.scoreNow = 0
+                    roundEnd = True
+                    continue
+
+
+            elif self.scoreNow == lastScore:
                 print("Bohužel jsi nic nehodil, smutné\n")
                 self.scoreNow = 0
                 self.lines += 1
@@ -157,9 +201,12 @@ class Player():
             if self.scoreNow >= minimal:
                 continueChoice = input("Chceš pokračovat? (A/N) > ")
                 if continueChoice.lower() == "a":
-                    pass
+                    if freeDices == 0:
+                        freeDices = 6
                 else:
                     roundEnd = True
+                    self.lines = 0
+
             else:
                 print(f"\nZatím máš {self.scoreNow} bodů, musíš přehodit {minimal} aby jsi mohl pokračovat.", end="\n\n")
 
@@ -167,12 +214,13 @@ class Player():
         self.score += self.scoreNow
 
         if self.lines == 3:
-            print("Vynuloval jsi, máš tři čárky")
+            print("Vynuloval jsi, máš tři čárky :(")
             self.score = 0
             self.lines = 0
 
         print(f"\n{'Konec kola, získali jste':<30} {self.scoreNow}")
         print(f"{'Celkový počet bodů':<30} {self.score}")
+        print("___________________________________________________\n")
 
     
 
@@ -180,7 +228,7 @@ def rollDice() -> int:
     return randint(1,6)
 
 def printPlayerScores(players : list[Player]):
-    print("\n> Skóre hráčů <")
+    print("\n\t======= Skóre hráčů =======\n")
     for player in players:
         name_part = f"Hráč {player.id} - {player.name} >"
         score_part = f"{player.score} bodů"
@@ -229,19 +277,25 @@ for player in players:
 print("\n\tHra začíná")
 
 mustOverThrow = minimalScore
+playerWon = None
+
 while not gameOver:
     for player in players:
         print(f"\nHraje hráč {player.id} - {player.name}")
 
         player.play(mustOverThrow)
-        if mustOverThrow < player.scoreNow:
+
+        if mustOverThrow <= player.scoreNow:
             mustOverThrow = player.scoreNow + 50
         else:
             mustOverThrow = minimalScore
 
         if player.score >= winScore:
-            print(f"Konec hry, vyhrává hráč {player.id} - {player.name} \n\tskóre - {player.score}\n")
-            gameOver = True
-            break
+            playerWon = player
+            winScore = player.score
+
+    if playerWon:
+        print(f"Konec hry, vyhrává hráč {playerWon.id} - {playerWon.name}. Gratulujeme :D\n")
+        gameOver = True
 
     printPlayerScores(players)
